@@ -4,37 +4,65 @@ static Window *s_main_window;
 
 // Layers
 static TextLayer *s_time_layer;
-static TextLayer *s_weather_layer;
+static TextLayer *s_date_layer;
+
 static TextLayer *s_temp_layer;
 static TextLayer *s_cond_layer;
-static TextLayer *s_info_layer;
+
 static BitmapLayer *s_background_layer;
 
 // Fonts
 static GFont s_time_font;
+static GFont s_date_font;
 static GFont s_weather_font;
 static GFont s_temp_font;
 static GFont s_cond_font;
-static GFont s_info_font;
 
 // Bitmaps
 static GBitmap *s_background_bitmap;
 
-static void update_time() {
-	time_t temp = time(NULL);
-	struct tm *tick_time = localtime(&temp);
-
+static void update_time(struct tm *tt) {
 	// Write the current hourc and minutes into a buffer
-	static char s_buffer[8];
-	strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
-			"%H:%M" : "%I:%M", tick_time);
+	static char s_time_buffer[8];
+	strftime(s_time_buffer, sizeof(s_time_buffer), clock_is_24h_style() ?
+			"%H:%M" : "%I:%M", tt);
+	text_layer_set_text(s_time_layer, s_time_buffer);
+}
 
-	// Display this time on the TextLayer
-	text_layer_set_text(s_time_layer, s_buffer);
+static void update_date(struct tm *tt) {
+	static char s_date_buffer[16];
+
+	strftime(s_date_buffer, sizeof(s_date_buffer), "%d.%m", tt);
+	switch(tt->tm_wday) {
+		case 0:
+			strcat(s_date_buffer, "Вс");
+			break;
+		case 1:
+			strcat(s_date_buffer, "Пн");
+			break;
+		case 2:
+			strcat(s_date_buffer, "Вт");
+			break;
+		case 3:
+			strcat(s_date_buffer, "Ср");
+			break;
+		case 4:
+			strcat(s_date_buffer, "Чт");
+			break;
+		case 5:
+			strcat(s_date_buffer, "Пт");
+			break;
+		case 6:
+			strcat(s_date_buffer, "Сб");
+			break;
+	}
+
+	text_layer_set_text(s_date_layer, s_date_buffer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-	update_time();
+	update_time(tick_time);
+	update_date(tick_time);
 
 	// Get weather update every 30 minutes
 	if(tick_time->tm_min % 30 == 0) {
@@ -63,25 +91,23 @@ static void main_window_load(Window *window) {
 	// Create BITMAP layer to display the GBitmap
 	s_background_layer = bitmap_layer_create(bounds);
 	
-	// Create the TIME layer with specific bounds
+	// Create TIME and DATE layers
 	s_time_layer = text_layer_create(
 		GRect(2, 41, (bounds.size.w - 2), 70));
+	s_date_layer = text_layer_create(
+		GRect(59, 127, (bounds.size.w - 2), 35));
 
 	// Create WEATHER layers
-	s_weather_layer = text_layer_create(
-		GRect(92, 2, (bounds.size.w - 92), 50));
 	s_temp_layer = text_layer_create(
-		GRect(0, -5, 50, 50));
+		GRect(0, -3, 50, 30));
 	s_cond_layer = text_layer_create(
-		GRect(2, 30, 88, 50));
+		GRect(0, 30, 88, 50));
 
-	// Create INFO layer
-	s_info_layer = text_layer_create(
-		GRect(2, 28, bounds.size.w, 25));
-
-	// Create TIME font
+	// Create TIME and DATE font
 	s_time_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_70));
+	s_date_font = fonts_load_custom_font(
+			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_30));
 
 	// Create WEATHER font
 	s_weather_font = fonts_load_custom_font(
@@ -91,13 +117,9 @@ static void main_window_load(Window *window) {
 	s_cond_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
 
-	// Create INFO font
-	s_info_font = fonts_load_custom_font(
-			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
-
 	/* SETTINGS */
 
-	// Style TIME text
+	// Style TIME and DATE text
 	window_set_background_color(s_main_window, GColorBlack);
 	text_layer_set_background_color(s_time_layer, GColorClear);
 	text_layer_set_text_color(s_time_layer, GColorWhite);
@@ -106,13 +128,13 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_time_layer, s_time_font);
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 
-	// Style WEATHER text
-	text_layer_set_background_color(s_weather_layer, GColorClear);
-	text_layer_set_text_color(s_weather_layer, GColorWhite);
-	text_layer_set_text(s_weather_layer, "");
-	text_layer_set_font(s_weather_layer, s_weather_font);
-	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
+	window_set_background_color(s_main_window, GColorBlack);
+	text_layer_set_background_color(s_date_layer, GColorClear);
+	text_layer_set_text_color(s_date_layer, GColorWhite);
+	text_layer_set_font(s_date_layer, s_date_font);
+	text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
 
+	// Style WEATHER text
 	text_layer_set_background_color(s_temp_layer, GColorClear);
 	text_layer_set_text_color(s_temp_layer, GColorWhite);
 	text_layer_set_text(s_temp_layer, "");
@@ -125,13 +147,6 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_cond_layer, s_cond_font);
 	text_layer_set_text_alignment(s_cond_layer, GTextAlignmentCenter);
 
-	// Style INFO text
-	text_layer_set_background_color(s_info_layer, GColorClear);
-	text_layer_set_text_color(s_info_layer, GColorWhite);
-	text_layer_set_text(s_info_layer, "");
-	text_layer_set_font(s_info_layer, s_info_font);
-	text_layer_set_text_alignment(s_info_layer, GTextAlignmentLeft);
-
 	/* SET */
 
 	// Set the BITMAP onto the layer and add to the window
@@ -140,22 +155,19 @@ static void main_window_load(Window *window) {
 
 	// Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
-	layer_add_child(
-			window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+	layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
 	layer_add_child(
 			window_get_root_layer(window), text_layer_get_layer(s_temp_layer));
 	layer_add_child(
 			window_get_root_layer(window), text_layer_get_layer(s_cond_layer));
-	layer_add_child(
-			window_get_root_layer(window), text_layer_get_layer(s_info_layer));
 }
 
 static void main_window_unload(Window *window) {
 	// Destroy TextLayer
 	text_layer_destroy(s_time_layer);
-
-	// Unload GFont
+	text_layer_destroy(s_date_layer);
 	fonts_unload_custom_font(s_time_font);
+	fonts_unload_custom_font(s_date_font);
 
 	// Destroy GBitmap
 	gbitmap_destroy(s_background_bitmap);
@@ -164,16 +176,11 @@ static void main_window_unload(Window *window) {
 	bitmap_layer_destroy(s_background_layer);
 
 	// Destroy WEATHER elements
-	text_layer_destroy(s_weather_layer);
 	text_layer_destroy(s_temp_layer);
 	text_layer_destroy(s_cond_layer);
 	fonts_unload_custom_font(s_weather_font);
 	fonts_unload_custom_font(s_temp_font);
 	fonts_unload_custom_font(s_cond_font);
-
-	// Destroy INFO elements
-	text_layer_destroy(s_info_layer);
-	fonts_unload_custom_font(s_info_font);
 }
 
 static void inbox_received_callback(
@@ -243,7 +250,10 @@ static void init() {
 	window_stack_push(s_main_window, true);
 
 	// Make sure the time is displayed from the start
-	update_time();
+	time_t temp = time(NULL);
+	struct tm *tick_time = localtime(&temp);
+	update_time(tick_time);
+	update_date(tick_time);
 
 	// Register APPLICATION callbacks
 	app_message_register_inbox_received(inbox_received_callback);

@@ -36,6 +36,18 @@
 				},
 				{
 					"type":"font",
+					"name": "FONT_SMALL_PIXEL_35",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility": "2.7"
+				},
+				{
+					"type":"font",
+					"name": "FONT_SMALL_PIXEL_30",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility": "2.7"
+				},
+				{
+					"type":"font",
 					"name": "FONT_SMALL_PIXEL_25",
 					"file": "fonts/small-pixel7.regular.ttf",
 					"compatibility": "2.7"
@@ -51,16 +63,6 @@
 					"name": "FONT_SMALL_PIXEL_18",
 					"file": "fonts/small-pixel7.regular.ttf",
 					"compatibility": "2.7"
-				},
-				{
-					"type": "bitmap",
-					"name": "IMAGE_BACKGROUND",
-					"file": "images/background.png"
-				},
-				{
-					"type": "bitmap",
-					"name": "IMAGE_EXAMPLE",
-					"file": "images/watchface_example.png"
 				},
 				{
 					"type": "bitmap",
