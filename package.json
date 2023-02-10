@@ -30,9 +30,15 @@
 			"media": [
 				{
 					"type": "font",
-					"name": "FONT_SMALL_PIXEL_65",
+					"name": "FONT_SMALL_PIXEL_70",
 					"file": "fonts/small-pixel7.regular.ttf",
 					"compatibility":"2.7"
+				},
+				{
+					"type":"font",
+					"name": "FONT_SMALL_PIXEL_25",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility": "2.7"
 				},
 				{
 					"type":"font",

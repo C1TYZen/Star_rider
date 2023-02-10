@@ -5,12 +5,16 @@ static Window *s_main_window;
 // Layers
 static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
+static TextLayer *s_temp_layer;
+static TextLayer *s_cond_layer;
 static TextLayer *s_info_layer;
 static BitmapLayer *s_background_layer;
 
 // Fonts
 static GFont s_time_font;
 static GFont s_weather_font;
+static GFont s_temp_font;
+static GFont s_cond_font;
 static GFont s_info_font;
 
 // Bitmaps
@@ -61,22 +65,30 @@ static void main_window_load(Window *window) {
 	
 	// Create the TIME layer with specific bounds
 	s_time_layer = text_layer_create(
-		GRect(0, 40, bounds.size.w, 70));
+		GRect(2, 41, (bounds.size.w - 2), 70));
 
-	// Create WEATHER layer
+	// Create WEATHER layers
 	s_weather_layer = text_layer_create(
-		GRect(60, 120, bounds.size.w, 25));
+		GRect(92, 2, (bounds.size.w - 92), 50));
+	s_temp_layer = text_layer_create(
+		GRect(0, -5, 50, 50));
+	s_cond_layer = text_layer_create(
+		GRect(2, 30, 88, 50));
 
 	// Create INFO layer
 	s_info_layer = text_layer_create(
-		GRect(3, 30, bounds.size.w, 20));
+		GRect(2, 28, bounds.size.w, 25));
 
 	// Create TIME font
 	s_time_font = fonts_load_custom_font(
-			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_65));
+			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_70));
 
 	// Create WEATHER font
 	s_weather_font = fonts_load_custom_font(
+			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
+	s_temp_font = fonts_load_custom_font(
+			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_25));
+	s_cond_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
 
 	// Create INFO font
@@ -97,14 +109,26 @@ static void main_window_load(Window *window) {
 	// Style WEATHER text
 	text_layer_set_background_color(s_weather_layer, GColorClear);
 	text_layer_set_text_color(s_weather_layer, GColorWhite);
-	// text_layer_set_text(s_weather_layer, "Загрузка...");
+	text_layer_set_text(s_weather_layer, "");
 	text_layer_set_font(s_weather_layer, s_weather_font);
-	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentLeft);
+	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
+
+	text_layer_set_background_color(s_temp_layer, GColorClear);
+	text_layer_set_text_color(s_temp_layer, GColorWhite);
+	text_layer_set_text(s_temp_layer, "");
+	text_layer_set_font(s_temp_layer, s_temp_font);
+	text_layer_set_text_alignment(s_temp_layer, GTextAlignmentCenter);
+
+	text_layer_set_background_color(s_cond_layer, GColorClear);
+	text_layer_set_text_color(s_cond_layer, GColorWhite);
+	text_layer_set_text(s_cond_layer, "Загрузка...");
+	text_layer_set_font(s_cond_layer, s_cond_font);
+	text_layer_set_text_alignment(s_cond_layer, GTextAlignmentCenter);
 
 	// Style INFO text
 	text_layer_set_background_color(s_info_layer, GColorClear);
 	text_layer_set_text_color(s_info_layer, GColorWhite);
-	text_layer_set_text(s_info_layer, "Информация");
+	text_layer_set_text(s_info_layer, "");
 	text_layer_set_font(s_info_layer, s_info_font);
 	text_layer_set_text_alignment(s_info_layer, GTextAlignmentLeft);
 
@@ -118,6 +142,10 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 	layer_add_child(
 			window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+	layer_add_child(
+			window_get_root_layer(window), text_layer_get_layer(s_temp_layer));
+	layer_add_child(
+			window_get_root_layer(window), text_layer_get_layer(s_cond_layer));
 	layer_add_child(
 			window_get_root_layer(window), text_layer_get_layer(s_info_layer));
 }
@@ -137,7 +165,11 @@ static void main_window_unload(Window *window) {
 
 	// Destroy WEATHER elements
 	text_layer_destroy(s_weather_layer);
+	text_layer_destroy(s_temp_layer);
+	text_layer_destroy(s_cond_layer);
 	fonts_unload_custom_font(s_weather_font);
+	fonts_unload_custom_font(s_temp_font);
+	fonts_unload_custom_font(s_cond_font);
 
 	// Destroy INFO elements
 	text_layer_destroy(s_info_layer);
@@ -147,12 +179,13 @@ static void main_window_unload(Window *window) {
 static void inbox_received_callback(
 		DictionaryIterator *iterator, void *context) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Inbox message rescieved!");
-	text_layer_set_text(s_weather_layer, "ТЕСТ");
 
 	// Store incoming information
 	static char temperature_buffer[8];
 	static char conditions_buffer[32];
 	static char weather_layer_buffer[32];
+	static char temp_layer_buffer[32];
+	static char cond_layer_buffer[32];
 
 	// Read tuples for data
 	Tuple *temp_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
@@ -161,14 +194,20 @@ static void inbox_received_callback(
 	// If all data is available, use it
 	if(temp_tuple && conditions_tuple) {
 		snprintf(temperature_buffer,
-			sizeof(temperature_buffer), "%dC", (int)temp_tuple->value->int32);
+			sizeof(temperature_buffer), "%d°C", (int)temp_tuple->value->int32);
 		snprintf(conditions_buffer,
 			sizeof(conditions_buffer), "%s", conditions_tuple->value->cstring);
 	}
+
 	// Assemble full string and display
-	snprintf(weather_layer_buffer,
-		sizeof(weather_layer_buffer), "%s, %s", temperature_buffer, conditions_buffer);
-	text_layer_set_text(s_weather_layer, weather_layer_buffer);
+	snprintf(temp_layer_buffer,
+		sizeof(temp_layer_buffer), "%s", temperature_buffer);
+	text_layer_set_text(s_temp_layer, temp_layer_buffer);
+
+	snprintf(cond_layer_buffer,
+		sizeof(cond_layer_buffer), "%s", conditions_buffer);
+	text_layer_set_text(s_cond_layer, cond_layer_buffer);
+
 	APP_LOG(APP_LOG_LEVEL_INFO, "%s", weather_layer_buffer);
 }
 
