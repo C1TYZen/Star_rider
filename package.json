@@ -1,0 +1,67 @@
+{
+	"name": "Star Rider",
+	"author": "CiTYZen",
+	"companyName": "Home",
+	"version": "0.1.0",
+	"sdk-version": "4.6-rc2",
+	"keywords": ["pebble-app"],
+	"private": true,
+	"dependencies": {},
+	"capabilities": ["location"],
+	"pebble": {
+		"displayName": "Star Rider",
+		"uuid": "30aa377c-d174-4b48-b8bd-bed6294ad4e5",
+		"sdkVersion": "3",
+		"enableMultiJS": true,
+		"targetPlatforms": [
+			"aplite",
+			"basalt",
+			"chalk",
+			"diorite"
+		],
+		"watchapp": {
+			"watchface": true
+		},
+		"messageKeys": [
+			"TEMPERATURE",
+			"CONDITIONS"
+		],
+		"resources": {
+			"media": [
+				{
+					"type": "font",
+					"name": "FONT_SMALL_PIXEL_65",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility":"2.7"
+				},
+				{
+					"type":"font",
+					"name": "FONT_SMALL_PIXEL_20",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility": "2.7"
+				},
+				{
+					"type":"font",
+					"name": "FONT_SMALL_PIXEL_18",
+					"file": "fonts/small-pixel7.regular.ttf",
+					"compatibility": "2.7"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BACKGROUND",
+					"file": "images/background.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_EXAMPLE",
+					"file": "images/watchface_example.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_GRID",
+					"file": "images/watchface_grid.png"
+				}
+			]
+		}
+	}
+}

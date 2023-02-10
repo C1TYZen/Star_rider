@@ -46,7 +46,9 @@
 *.mod*
 *.cmd
 .tmp_versions/
+.lock-waf_linux2_build
 modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+build/
