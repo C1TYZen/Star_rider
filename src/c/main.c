@@ -19,7 +19,13 @@ static GFont s_temp_font;
 static GFont s_cond_font;
 
 // Bitmaps
-static GBitmap *s_background_bitmap;
+static GBitmap *s_background_battery_full_bitmap;
+static GBitmap *s_background_battery_80_bitmap;
+static GBitmap *s_background_battery_60_bitmap;
+static GBitmap *s_background_battery_40_bitmap;
+static GBitmap *s_background_battery_low_bitmap;
+
+static int s_battery_level;
 
 static void update_time(struct tm *tt) {
 	// Write the current hourc and minutes into a buffer
@@ -86,7 +92,16 @@ static void main_window_load(Window *window) {
 	/* CREATE */
 
 	// Create GBitmap
-	s_background_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GRID);
+	s_background_battery_full_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_FULL);
+	s_background_battery_80_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_80);
+	s_background_battery_60_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_60);
+	s_background_battery_40_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_40);
+	s_background_battery_low_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_LOW);
 	
 	// Create BITMAP layer to display the GBitmap
 	s_background_layer = bitmap_layer_create(bounds);
@@ -128,11 +143,12 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_time_layer, s_time_font);
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 
-	window_set_background_color(s_main_window, GColorBlack);
 	text_layer_set_background_color(s_date_layer, GColorClear);
 	text_layer_set_text_color(s_date_layer, GColorWhite);
 	text_layer_set_font(s_date_layer, s_date_font);
 	text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
+
+	bitmap_layer_set_background_color(s_background_layer, GColorClear);
 
 	// Style WEATHER text
 	text_layer_set_background_color(s_temp_layer, GColorClear);
@@ -150,7 +166,7 @@ static void main_window_load(Window *window) {
 	/* SET */
 
 	// Set the BITMAP onto the layer and add to the window
-	bitmap_layer_set_bitmap(s_background_layer, s_background_bitmap);
+	bitmap_layer_set_bitmap(s_background_layer, s_background_battery_full_bitmap);
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
 
 	// Add it as a child layer to the Window's root layer
@@ -170,7 +186,11 @@ static void main_window_unload(Window *window) {
 	fonts_unload_custom_font(s_date_font);
 
 	// Destroy GBitmap
-	gbitmap_destroy(s_background_bitmap);
+	gbitmap_destroy(s_background_battery_full_bitmap);
+	gbitmap_destroy(s_background_battery_80_bitmap);
+	gbitmap_destroy(s_background_battery_60_bitmap);
+	gbitmap_destroy(s_background_battery_40_bitmap);
+	gbitmap_destroy(s_background_battery_low_bitmap);
 
 	// Destroy BitmapLayer
 	bitmap_layer_destroy(s_background_layer);
@@ -233,6 +253,23 @@ static void outbox_sent_callback(
 	APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
+static void battery_callback(BatteryChargeState state) {
+	// Record the new battery level
+	s_battery_level = state.charge_percent;
+	APP_LOG(APP_LOG_LEVEL_INFO, "BATTERY: %d", s_battery_level);
+
+	if(s_battery_level >= 81)
+		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_full_bitmap);
+	else if(s_battery_level >= 61)
+		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_80_bitmap);
+	else if(s_battery_level >= 41)
+		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_60_bitmap);
+	else if(s_battery_level >= 21)
+		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_40_bitmap);
+	else if(s_battery_level >= 1)
+		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_low_bitmap);
+}
+
 static void init() {
 	// Register with TickTimerService
 	tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
@@ -265,6 +302,11 @@ static void init() {
 	const int inbox_size = 128;
 	const int outbox_size = 128;
 	app_message_open(inbox_size, outbox_size);
+
+	// Register for battery level updates
+	battery_state_service_subscribe(battery_callback);
+	// Ensure battery level is displayed from the start
+	battery_callback(battery_state_service_peek());
 
 	APP_LOG(APP_LOG_LEVEL_INFO, "INITIALIZED!!!");
 }

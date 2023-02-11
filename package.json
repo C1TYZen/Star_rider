@@ -3,7 +3,7 @@
 	"author": "CiTYZen",
 	"companyName": "Home",
 	"version": "0.1.0",
-	"sdk-version": "4.6-rc2",
+	"sdkVersionUsed": "4.6-rc2",
 	"keywords": ["pebble-app"],
 	"private": true,
 	"dependencies": {},
@@ -15,9 +15,7 @@
 		"enableMultiJS": true,
 		"targetPlatforms": [
 			"aplite",
-			"basalt",
-			"chalk",
-			"diorite"
+			"basalt"
 		],
 		"watchapp": {
 			"watchface": true
@@ -33,12 +31,6 @@
 					"name": "FONT_SMALL_PIXEL_70",
 					"file": "fonts/small-pixel7.regular.ttf",
 					"compatibility":"2.7"
-				},
-				{
-					"type":"font",
-					"name": "FONT_SMALL_PIXEL_35",
-					"file": "fonts/small-pixel7.regular.ttf",
-					"compatibility": "2.7"
 				},
 				{
 					"type":"font",
@@ -59,15 +51,34 @@
 					"compatibility": "2.7"
 				},
 				{
-					"type":"font",
-					"name": "FONT_SMALL_PIXEL_18",
-					"file": "fonts/small-pixel7.regular.ttf",
-					"compatibility": "2.7"
-				},
-				{
 					"type": "bitmap",
 					"name": "IMAGE_GRID",
 					"file": "images/watchface_grid.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BATTERY_LOW",
+					"file": "images/watchface_grid_battery_low.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BATTERY_40",
+					"file": "images/watchface_grid_battery_40.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BATTERY_60",
+					"file": "images/watchface_grid_battery_60.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BATTERY_80",
+					"file": "images/watchface_grid_battery_80.png"
+				},
+				{
+					"type": "bitmap",
+					"name": "IMAGE_BATTERY_FULL",
+					"file": "images/watchface_grid_battery_full.png"
 				}
 			]
 		}
