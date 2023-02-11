@@ -5,7 +5,6 @@ static Window *s_main_window;
 // Layers
 static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
-
 static TextLayer *s_temp_layer;
 static TextLayer *s_cond_layer;
 
@@ -25,6 +24,7 @@ static GBitmap *s_background_battery_60_bitmap;
 static GBitmap *s_background_battery_40_bitmap;
 static GBitmap *s_background_battery_low_bitmap;
 
+// Vars
 static int s_battery_level;
 
 static void update_time(struct tm *tt) {
@@ -138,8 +138,6 @@ static void main_window_load(Window *window) {
 	window_set_background_color(s_main_window, GColorBlack);
 	text_layer_set_background_color(s_time_layer, GColorClear);
 	text_layer_set_text_color(s_time_layer, GColorWhite);
-	// text_layer_set_text(s_time_layer, "00:00");
-	// text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_font(s_time_layer, s_time_font);
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 
@@ -166,7 +164,8 @@ static void main_window_load(Window *window) {
 	/* SET */
 
 	// Set the BITMAP onto the layer and add to the window
-	bitmap_layer_set_bitmap(s_background_layer, s_background_battery_full_bitmap);
+	bitmap_layer_set_bitmap(
+			s_background_layer, s_background_battery_full_bitmap);
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
 
 	// Add it as a child layer to the Window's root layer
@@ -179,11 +178,16 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
-	// Destroy TextLayer
+	// Destroy Text layers and fonts
 	text_layer_destroy(s_time_layer);
 	text_layer_destroy(s_date_layer);
+	text_layer_destroy(s_temp_layer);
+	text_layer_destroy(s_cond_layer);
 	fonts_unload_custom_font(s_time_font);
 	fonts_unload_custom_font(s_date_font);
+	fonts_unload_custom_font(s_weather_font);
+	fonts_unload_custom_font(s_temp_font);
+	fonts_unload_custom_font(s_cond_font);
 
 	// Destroy GBitmap
 	gbitmap_destroy(s_background_battery_full_bitmap);
@@ -194,13 +198,6 @@ static void main_window_unload(Window *window) {
 
 	// Destroy BitmapLayer
 	bitmap_layer_destroy(s_background_layer);
-
-	// Destroy WEATHER elements
-	text_layer_destroy(s_temp_layer);
-	text_layer_destroy(s_cond_layer);
-	fonts_unload_custom_font(s_weather_font);
-	fonts_unload_custom_font(s_temp_font);
-	fonts_unload_custom_font(s_cond_font);
 }
 
 static void inbox_received_callback(
@@ -210,7 +207,6 @@ static void inbox_received_callback(
 	// Store incoming information
 	static char temperature_buffer[8];
 	static char conditions_buffer[32];
-	static char weather_layer_buffer[32];
 	static char temp_layer_buffer[32];
 	static char cond_layer_buffer[32];
 
@@ -234,12 +230,9 @@ static void inbox_received_callback(
 	snprintf(cond_layer_buffer,
 		sizeof(cond_layer_buffer), "%s", conditions_buffer);
 	text_layer_set_text(s_cond_layer, cond_layer_buffer);
-
-	APP_LOG(APP_LOG_LEVEL_INFO, "%s", weather_layer_buffer);
 }
 
-static void inbox_dropped_callback(
-		AppMessageResult reason, void *context) {
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
 	APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
 }
 
@@ -258,15 +251,15 @@ static void battery_callback(BatteryChargeState state) {
 	s_battery_level = state.charge_percent;
 	APP_LOG(APP_LOG_LEVEL_INFO, "BATTERY: %d", s_battery_level);
 
-	if(s_battery_level >= 81)
+	if(s_battery_level > 80)
 		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_full_bitmap);
-	else if(s_battery_level >= 61)
+	else if(s_battery_level > 60)
 		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_80_bitmap);
-	else if(s_battery_level >= 41)
+	else if(s_battery_level > 40)
 		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_60_bitmap);
-	else if(s_battery_level >= 21)
+	else if(s_battery_level > 20)
 		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_40_bitmap);
-	else if(s_battery_level >= 1)
+	else if(s_battery_level > 0)
 		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_low_bitmap);
 }
 
