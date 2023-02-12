@@ -53,32 +53,32 @@
 				{
 					"type": "bitmap",
 					"name": "IMAGE_GRID",
-					"file": "images/watchface_grid.png"
+					"file": "images/grid.png"
 				},
 				{
 					"type": "bitmap",
 					"name": "IMAGE_BATTERY_LOW",
-					"file": "images/watchface_grid_battery_low.png"
+					"file": "images/battery_low.png"
 				},
 				{
 					"type": "bitmap",
 					"name": "IMAGE_BATTERY_40",
-					"file": "images/watchface_grid_battery_40.png"
+					"file": "images/battery_40.png"
 				},
 				{
 					"type": "bitmap",
 					"name": "IMAGE_BATTERY_60",
-					"file": "images/watchface_grid_battery_60.png"
+					"file": "images/battery_60.png"
 				},
 				{
 					"type": "bitmap",
 					"name": "IMAGE_BATTERY_80",
-					"file": "images/watchface_grid_battery_80.png"
+					"file": "images/battery_80.png"
 				},
 				{
 					"type": "bitmap",
 					"name": "IMAGE_BATTERY_FULL",
-					"file": "images/watchface_grid_battery_full.png"
+					"file": "images/battery_full.png"
 				}
 			]
 		}

@@ -7,8 +7,10 @@ static TextLayer *s_time_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_temp_layer;
 static TextLayer *s_cond_layer;
+static TextLayer *s_bluetooth_layer;
 
 static BitmapLayer *s_background_layer;
+static BitmapLayer *s_battery_layer;
 
 // Fonts
 static GFont s_time_font;
@@ -16,16 +18,19 @@ static GFont s_date_font;
 static GFont s_weather_font;
 static GFont s_temp_font;
 static GFont s_cond_font;
+static GFont s_bluetooth_font;
 
 // Bitmaps
-static GBitmap *s_background_battery_full_bitmap;
-static GBitmap *s_background_battery_80_bitmap;
-static GBitmap *s_background_battery_60_bitmap;
-static GBitmap *s_background_battery_40_bitmap;
-static GBitmap *s_background_battery_low_bitmap;
+static GBitmap *s_grid_bitmap;
+static GBitmap *s_battery_full_bitmap;
+static GBitmap *s_battery_80_bitmap;
+static GBitmap *s_battery_60_bitmap;
+static GBitmap *s_battery_40_bitmap;
+static GBitmap *s_battery_low_bitmap;
 
 // Vars
 static int s_battery_level;
+static const char* week_day[] = {"Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"};
 
 static void update_time(struct tm *tt) {
 	// Write the current hourc and minutes into a buffer
@@ -39,30 +44,7 @@ static void update_date(struct tm *tt) {
 	static char s_date_buffer[16];
 
 	strftime(s_date_buffer, sizeof(s_date_buffer), "%d.%m", tt);
-	switch(tt->tm_wday) {
-		case 0:
-			strcat(s_date_buffer, "Вс");
-			break;
-		case 1:
-			strcat(s_date_buffer, "Пн");
-			break;
-		case 2:
-			strcat(s_date_buffer, "Вт");
-			break;
-		case 3:
-			strcat(s_date_buffer, "Ср");
-			break;
-		case 4:
-			strcat(s_date_buffer, "Чт");
-			break;
-		case 5:
-			strcat(s_date_buffer, "Пт");
-			break;
-		case 6:
-			strcat(s_date_buffer, "Сб");
-			break;
-	}
-
+	strcat(s_date_buffer, week_day[tt->tm_wday]);
 	text_layer_set_text(s_date_layer, s_date_buffer);
 }
 
@@ -92,25 +74,30 @@ static void main_window_load(Window *window) {
 	/* CREATE */
 
 	// Create GBitmap
-	s_background_battery_full_bitmap =
+	s_grid_bitmap =
+		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GRID);
+	s_battery_full_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_FULL);
-	s_background_battery_80_bitmap =
+	s_battery_80_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_80);
-	s_background_battery_60_bitmap =
+	s_battery_60_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_60);
-	s_background_battery_40_bitmap =
+	s_battery_40_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_40);
-	s_background_battery_low_bitmap =
+	s_battery_low_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_LOW);
 	
 	// Create BITMAP layer to display the GBitmap
 	s_background_layer = bitmap_layer_create(bounds);
+	s_battery_layer = bitmap_layer_create(GRect(0, 120, 51, 47));
 	
 	// Create TIME and DATE layers
 	s_time_layer = text_layer_create(
-		GRect(2, 41, (bounds.size.w - 2), 70));
+		GRect(2, 41, bounds.size.w, 70));
 	s_date_layer = text_layer_create(
-		GRect(59, 127, (bounds.size.w - 2), 35));
+		GRect(59, 121, (bounds.size.w - 2), 35));
+	s_bluetooth_layer = text_layer_create(
+		GRect(59, 147, (bounds.size.w - 2), 35));
 
 	// Create WEATHER layers
 	s_temp_layer = text_layer_create(
@@ -123,6 +110,8 @@ static void main_window_load(Window *window) {
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_70));
 	s_date_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_30));
+	s_bluetooth_font = fonts_load_custom_font(
+			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
 
 	// Create WEATHER font
 	s_weather_font = fonts_load_custom_font(
@@ -146,6 +135,12 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_date_layer, s_date_font);
 	text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
 
+	text_layer_set_background_color(s_bluetooth_layer, GColorClear);
+	text_layer_set_text_color(s_bluetooth_layer, GColorBlue);
+	text_layer_set_font(s_bluetooth_layer, s_bluetooth_font);
+	text_layer_set_text_alignment(s_bluetooth_layer, GTextAlignmentLeft);
+	text_layer_set_text(s_bluetooth_layer, "Bluetooth");
+
 	bitmap_layer_set_background_color(s_background_layer, GColorClear);
 
 	// Style WEATHER text
@@ -164,13 +159,14 @@ static void main_window_load(Window *window) {
 	/* SET */
 
 	// Set the BITMAP onto the layer and add to the window
-	bitmap_layer_set_bitmap(
-			s_background_layer, s_background_battery_full_bitmap);
+	bitmap_layer_set_bitmap(s_background_layer, s_grid_bitmap);
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
+	layer_add_child(window_layer, bitmap_layer_get_layer(s_battery_layer));
 
 	// Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 	layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
+	layer_add_child(window_layer, text_layer_get_layer(s_bluetooth_layer));
 	layer_add_child(
 			window_get_root_layer(window), text_layer_get_layer(s_temp_layer));
 	layer_add_child(
@@ -181,6 +177,7 @@ static void main_window_unload(Window *window) {
 	// Destroy Text layers and fonts
 	text_layer_destroy(s_time_layer);
 	text_layer_destroy(s_date_layer);
+	text_layer_destroy(s_bluetooth_layer);
 	text_layer_destroy(s_temp_layer);
 	text_layer_destroy(s_cond_layer);
 	fonts_unload_custom_font(s_time_font);
@@ -190,11 +187,12 @@ static void main_window_unload(Window *window) {
 	fonts_unload_custom_font(s_cond_font);
 
 	// Destroy GBitmap
-	gbitmap_destroy(s_background_battery_full_bitmap);
-	gbitmap_destroy(s_background_battery_80_bitmap);
-	gbitmap_destroy(s_background_battery_60_bitmap);
-	gbitmap_destroy(s_background_battery_40_bitmap);
-	gbitmap_destroy(s_background_battery_low_bitmap);
+	gbitmap_destroy(s_grid_bitmap);
+	gbitmap_destroy(s_battery_full_bitmap);
+	gbitmap_destroy(s_battery_80_bitmap);
+	gbitmap_destroy(s_battery_60_bitmap);
+	gbitmap_destroy(s_battery_40_bitmap);
+	gbitmap_destroy(s_battery_low_bitmap);
 
 	// Destroy BitmapLayer
 	bitmap_layer_destroy(s_background_layer);
@@ -252,15 +250,15 @@ static void battery_callback(BatteryChargeState state) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "BATTERY: %d", s_battery_level);
 
 	if(s_battery_level > 80)
-		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_full_bitmap);
+		bitmap_layer_set_bitmap(s_battery_layer, s_battery_full_bitmap);
 	else if(s_battery_level > 60)
-		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_80_bitmap);
+		bitmap_layer_set_bitmap(s_battery_layer, s_battery_80_bitmap);
 	else if(s_battery_level > 40)
-		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_60_bitmap);
+		bitmap_layer_set_bitmap(s_battery_layer, s_battery_60_bitmap);
 	else if(s_battery_level > 20)
-		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_40_bitmap);
+		bitmap_layer_set_bitmap(s_battery_layer, s_battery_40_bitmap);
 	else if(s_battery_level > 0)
-		bitmap_layer_set_bitmap(s_background_layer, s_background_battery_low_bitmap);
+		bitmap_layer_set_bitmap(s_battery_layer, s_battery_low_bitmap);
 }
 
 static void init() {
