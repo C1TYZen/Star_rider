@@ -14,6 +14,40 @@ typedef struct text_layer_style_s {
 	uint8_t align;
 } text_layer_style_t;
 
+// Windows
+static Window *s_main_window;
+
+// Layers
+static TextLayer *s_time_layer;
+static TextLayer *s_date_layer;
+static TextLayer *s_temp_layer;
+static TextLayer *s_cond_layer;
+static TextLayer *s_bluetooth_layer;
+
+static BitmapLayer *s_background_layer;
+static BitmapLayer *s_battery_layer;
+
+// Fonts
+static GFont s_time_font;
+static GFont s_date_font;
+static GFont s_temp_font;
+static GFont s_cond_font;
+static GFont s_bluetooth_font;
+
+// Bitmaps
+static GBitmap *s_grid_bitmap;
+static GBitmap *s_battery_full_bitmap;
+static GBitmap *s_battery_80_bitmap;
+static GBitmap *s_battery_60_bitmap;
+static GBitmap *s_battery_40_bitmap;
+static GBitmap *s_battery_low_bitmap;
+
+// Vars
+static int s_battery_level;
+static const char* week_day[] = {"Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"};
+
+/* ------------------------------------------------------------------------- */
+
 static void update_time(struct tm *tt) {
 	// Write the current hourc and minutes into a buffer
 	static char s_time_buffer[8];
@@ -62,7 +96,7 @@ static void main_window_load(Window *window) {
 	GRect bounds = layer_get_bounds(window_layer);
 	window_set_background_color(s_main_window, GColorBlack);
 
-	// BATTERY Bitmaps
+	// Bitmaps
 	s_grid_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GRID);
 	s_battery_full_bitmap =
@@ -76,25 +110,23 @@ static void main_window_load(Window *window) {
 	s_battery_low_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_LOW);
 	
-	// TIME and DATE fonts
+	// Background
+	s_background_layer = bitmap_layer_create(bounds);
+	bitmap_layer_set_background_color(s_background_layer, GColorClear);
+
+	s_battery_layer = bitmap_layer_create(GRect(0, 120, 51, 47));
+	
+	// Fonts
 	s_time_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_70));
 	s_date_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_30));
 	s_bluetooth_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
-
-	// WEATHER font
 	s_temp_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_25));
 	s_cond_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
-
-	// Background layer
-	s_background_layer = bitmap_layer_create(bounds);
-	bitmap_layer_set_background_color(s_background_layer, GColorClear);
-
-	s_battery_layer = bitmap_layer_create(GRect(0, 120, 51, 47));
 
 	// TIME layer
 	s_time_layer = text_layer_create(GRect(2, 41, bounds.size.w, 70));
