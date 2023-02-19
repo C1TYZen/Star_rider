@@ -1,36 +1,18 @@
 #include <pebble.h>
+#include "main.h"
+#include "weather.h"
+#include "time_date.h"
+#include "battery.h"
+#include "bluetooth.h"
 
-static Window *s_main_window;
-
-// Layers
-static TextLayer *s_time_layer;
-static TextLayer *s_date_layer;
-static TextLayer *s_temp_layer;
-static TextLayer *s_cond_layer;
-static TextLayer *s_bluetooth_layer;
-
-static BitmapLayer *s_background_layer;
-static BitmapLayer *s_battery_layer;
-
-// Fonts
-static GFont s_time_font;
-static GFont s_date_font;
-static GFont s_weather_font;
-static GFont s_temp_font;
-static GFont s_cond_font;
-static GFont s_bluetooth_font;
-
-// Bitmaps
-static GBitmap *s_grid_bitmap;
-static GBitmap *s_battery_full_bitmap;
-static GBitmap *s_battery_80_bitmap;
-static GBitmap *s_battery_60_bitmap;
-static GBitmap *s_battery_40_bitmap;
-static GBitmap *s_battery_low_bitmap;
-
-// Vars
-static int s_battery_level;
-static const char* week_day[] = {"Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"};
+typedef struct text_layer_style_s {
+	TextLayer* layer;
+	GColor b_color;
+	GColor t_color;
+	GFont font;
+	const char* text;
+	uint8_t align;
+} text_layer_style_t;
 
 static void update_time(struct tm *tt) {
 	// Write the current hourc and minutes into a buffer
@@ -66,14 +48,21 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	}
 }
 
+static void text_layer_style(text_layer_style_t l) {
+	text_layer_set_background_color(l.layer, l.b_color);
+	text_layer_set_text_color(l.layer, l.t_color);
+	text_layer_set_font(l.layer, l.font);
+	text_layer_set_text(l.layer, l.text);
+	text_layer_set_text_alignment(l.layer, l.align);
+}
+
 static void main_window_load(Window *window) {
 	// Get information about the Window
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
+	window_set_background_color(s_main_window, GColorBlack);
 
-	/* CREATE */
-
-	// Create GBitmap
+	// BATTERY Bitmaps
 	s_grid_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_GRID);
 	s_battery_full_bitmap =
@@ -87,25 +76,7 @@ static void main_window_load(Window *window) {
 	s_battery_low_bitmap =
 		gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_LOW);
 	
-	// Create BITMAP layer to display the GBitmap
-	s_background_layer = bitmap_layer_create(bounds);
-	s_battery_layer = bitmap_layer_create(GRect(0, 120, 51, 47));
-	
-	// Create TIME and DATE layers
-	s_time_layer = text_layer_create(
-		GRect(2, 41, bounds.size.w, 70));
-	s_date_layer = text_layer_create(
-		GRect(59, 121, (bounds.size.w - 2), 35));
-	s_bluetooth_layer = text_layer_create(
-		GRect(59, 147, (bounds.size.w - 2), 35));
-
-	// Create WEATHER layers
-	s_temp_layer = text_layer_create(
-		GRect(0, -3, 50, 30));
-	s_cond_layer = text_layer_create(
-		GRect(0, 30, 88, 50));
-
-	// Create TIME and DATE font
+	// TIME and DATE fonts
 	s_time_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_70));
 	s_date_font = fonts_load_custom_font(
@@ -113,64 +84,85 @@ static void main_window_load(Window *window) {
 	s_bluetooth_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
 
-	// Create WEATHER font
-	s_weather_font = fonts_load_custom_font(
-			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
+	// WEATHER font
 	s_temp_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_25));
 	s_cond_font = fonts_load_custom_font(
 			resource_get_handle(RESOURCE_ID_FONT_SMALL_PIXEL_20));
 
-	/* SETTINGS */
-
-	// Style TIME and DATE text
-	window_set_background_color(s_main_window, GColorBlack);
-	text_layer_set_background_color(s_time_layer, GColorClear);
-	text_layer_set_text_color(s_time_layer, GColorWhite);
-	text_layer_set_font(s_time_layer, s_time_font);
-	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-
-	text_layer_set_background_color(s_date_layer, GColorClear);
-	text_layer_set_text_color(s_date_layer, GColorWhite);
-	text_layer_set_font(s_date_layer, s_date_font);
-	text_layer_set_text_alignment(s_date_layer, GTextAlignmentLeft);
-
-	text_layer_set_background_color(s_bluetooth_layer, GColorClear);
-	text_layer_set_text_color(s_bluetooth_layer, GColorBlue);
-	text_layer_set_font(s_bluetooth_layer, s_bluetooth_font);
-	text_layer_set_text_alignment(s_bluetooth_layer, GTextAlignmentLeft);
-	text_layer_set_text(s_bluetooth_layer, "Bluetooth");
-
+	// Background layer
+	s_background_layer = bitmap_layer_create(bounds);
 	bitmap_layer_set_background_color(s_background_layer, GColorClear);
 
-	// Style WEATHER text
-	text_layer_set_background_color(s_temp_layer, GColorClear);
-	text_layer_set_text_color(s_temp_layer, GColorWhite);
-	text_layer_set_text(s_temp_layer, "");
-	text_layer_set_font(s_temp_layer, s_temp_font);
-	text_layer_set_text_alignment(s_temp_layer, GTextAlignmentCenter);
+	s_battery_layer = bitmap_layer_create(GRect(0, 120, 51, 47));
 
-	text_layer_set_background_color(s_cond_layer, GColorClear);
-	text_layer_set_text_color(s_cond_layer, GColorWhite);
-	text_layer_set_text(s_cond_layer, "Загрузка...");
-	text_layer_set_font(s_cond_layer, s_cond_font);
-	text_layer_set_text_alignment(s_cond_layer, GTextAlignmentCenter);
+	// TIME layer
+	s_time_layer = text_layer_create(GRect(2, 41, bounds.size.w, 70));
+	text_layer_style((text_layer_style_t) {
+		.layer = s_time_layer,
+		.b_color = GColorClear,
+		.t_color = GColorWhite,
+		.font = s_time_font,
+		.text = "",
+		.align = GTextAlignmentCenter
+	});
 
-	/* SET */
+	// DATE layer
+	s_date_layer = text_layer_create(GRect(59, 121, (bounds.size.w - 2), 35));
+	text_layer_style((text_layer_style_t) {
+		.layer = s_date_layer,
+		.b_color = GColorClear,
+		.t_color = GColorWhite,
+		.font = s_date_font,
+		.text = "",
+		.align = GTextAlignmentLeft
+	});
+
+	// CONDITION layer
+	s_cond_layer = text_layer_create(GRect(0, 30, 88, 50));
+	text_layer_style((text_layer_style_t) {
+		.layer = s_cond_layer,
+		.b_color = GColorClear,
+		.t_color = GColorWhite,
+		.font = s_cond_font,
+		.text = "Загрузка...",
+		.align = GTextAlignmentCenter
+	});
+
+	// TEMPERATURE layer
+	s_temp_layer = text_layer_create(GRect(0, -3, 50, 30));
+	text_layer_style((text_layer_style_t) {
+		.layer = s_temp_layer,
+		.b_color = GColorClear,
+		.t_color = GColorWhite,
+		.font = s_temp_font,
+		.text = "",
+		.align = GTextAlignmentCenter
+	});
+
+	// BLUETOOTH layer
+	s_bluetooth_layer = text_layer_create(
+		GRect(59, 146, (bounds.size.w - 2), 35));
+	text_layer_style((text_layer_style_t) {
+		.layer = s_bluetooth_layer,
+		.b_color = GColorClear,
+		.t_color = GColorBlue,
+		.font = s_bluetooth_font,
+		.text = "Bluetooth",
+		.align = GTextAlignmentLeft
+	});
+
+	/* LAYOUT */
 
 	// Set the BITMAP onto the layer and add to the window
 	bitmap_layer_set_bitmap(s_background_layer, s_grid_bitmap);
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_battery_layer));
-
-	// Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 	layer_add_child(window_layer, text_layer_get_layer(s_date_layer));
 	layer_add_child(window_layer, text_layer_get_layer(s_bluetooth_layer));
-	layer_add_child(
-			window_get_root_layer(window), text_layer_get_layer(s_temp_layer));
-	layer_add_child(
-			window_get_root_layer(window), text_layer_get_layer(s_cond_layer));
+	layer_add_child(window_layer, text_layer_get_layer(s_temp_layer));
+	layer_add_child(window_layer, text_layer_get_layer(s_cond_layer));
 }
 
 static void main_window_unload(Window *window) {
@@ -180,9 +172,9 @@ static void main_window_unload(Window *window) {
 	text_layer_destroy(s_bluetooth_layer);
 	text_layer_destroy(s_temp_layer);
 	text_layer_destroy(s_cond_layer);
+
 	fonts_unload_custom_font(s_time_font);
 	fonts_unload_custom_font(s_date_font);
-	fonts_unload_custom_font(s_weather_font);
 	fonts_unload_custom_font(s_temp_font);
 	fonts_unload_custom_font(s_cond_font);
 
@@ -196,6 +188,7 @@ static void main_window_unload(Window *window) {
 
 	// Destroy BitmapLayer
 	bitmap_layer_destroy(s_background_layer);
+	bitmap_layer_destroy(s_battery_layer);
 }
 
 static void inbox_received_callback(
